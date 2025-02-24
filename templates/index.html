@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Translator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.70/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.70/vfs_fonts.js"></script>
+    <script>
+        async function translateText(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const response = await fetch(form.action, {
+                method: form.method,
+                body: formData,
+            });
+            const data = await response.json();
+            if (response.ok) {
+                document.getElementById('translated_text').textContent = data.translated_text;
+                document.getElementById('translated_text').style.display = 'block';
+                document.getElementById('download_pdf').style.display = 'block';
+            } else {
+                document.getElementById('translated_text').textContent = "Error: " + data.error;
+                document.getElementById('translated_text').style.display = 'block';
+            }
+        }
+        
+        function downloadPDF() {
+            const originalText = document.getElementById('text').value;
+            const translatedText = document.getElementById('translated_text').textContent;
+            const docDefinition = {
+                content: [
+                    { text: 'Text Translator Output', style: 'header' },
+                    { text: '\nOriginal Text:', style: 'subheader' },
+                    { text: originalText, style: 'text' },
+                    { text: '\nTranslated Text:', style: 'subheader' },
+                    { text: translatedText, style: 'text' },
+                ],
+                styles: {
+                    header: { fontSize: 18, bold: true, alignment: 'center', margin: [0, 10, 0, 10] },
+                    subheader: { fontSize: 14, bold: true, margin: [0, 5, 0, 5] },
+                    text: { fontSize: 12, margin: [0, 2, 0, 2] },
+                }
+            };
+            pdfMake.createPdf(docDefinition).download('translated_text.pdf');
+        }
+    </script>
+</head>
+<body>
+    <h1>Text Translator</h1>
+    <form action="/translate" method="POST" onsubmit="translateText(event)">
+        <div class="text-box-container">
+            <label for="text">Enter text to translate:</label>
+            <textarea name="text" id="text" required></textarea>
+        </div>
+        <label for="target_language">Choose target language:</label>
+        <select name="target_language" id="target_language" required>
+            {% for code, language in languages.items() %}
+                <option value="{{ code }}">{{ language }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Translate</button>
+    </form>
+    <h2>Translated Text:</h2>
+    <p id="translated_text" style="display: none;"></p>
+    <button id="download_pdf" style="display: none;" onclick="downloadPDF()">Download as PDF</button>
+</body>
+</html>
